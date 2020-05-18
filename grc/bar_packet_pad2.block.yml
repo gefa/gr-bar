@@ -34,6 +34,8 @@ inputs:
 -   domain: stream
     dtype: complex
     multiplicity: '1'
+-   domain: message
+    id: in
 
 outputs:
 -   domain: stream

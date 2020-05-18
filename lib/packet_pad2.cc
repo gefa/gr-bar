@@ -36,15 +36,29 @@ packet_pad2_impl(bool debug, bool delay, double delay_sec, unsigned int pad_fron
 			d_delay(delay),
 			d_delay_sec(delay_sec),
 			d_pad_front(pad_front),
-			d_pad_tail(pad_tail) {
+			d_pad_tail(pad_tail),
+			d_tail(pad_tail) {
 	set_tag_propagation_policy(block::TPP_DONT);
+	message_port_register_in(pmt::mp("in"));
+	set_msg_handler(pmt::mp("in"), boost::bind(&packet_pad2_impl::set_offset, this, _1));
 }
 
 ~packet_pad2_impl(){
 }
 
+void set_offset(pmt::pmt_t msg){
+	int psdu_length2 = pmt::blob_length(pmt::cdr(msg));
+	std::cout << "PAD length" << psdu_length2 << std::endl;
+	const char *offset = static_cast<const char*>(pmt::blob_data(pmt::cdr(msg)));
+	if (psdu_length2 == 1) {
+		d_pad_front = (offset[0])*1000;
+		d_tail = d_pad_tail - (offset[0])*1000;
+	}
+	std::cout << "PAD offset" << d_pad_front << std::endl;
+}
+
 int calculate_output_stream_length(const gr_vector_int &ninput_items) {
-	return ninput_items[0] + d_pad_front + d_pad_tail;
+	return ninput_items[0] + d_pad_front + d_tail;
 }
 
 int work (int noutput_items, gr_vector_int& ninput_items,
@@ -54,12 +68,12 @@ int work (int noutput_items, gr_vector_int& ninput_items,
 	const gr_complex *in = (const gr_complex*)input_items[0];
 	gr_complex *out = (gr_complex*)output_items[0];
 
-	std::memset(out, 0x00, sizeof(gr_complex) * (ninput_items[0] + d_pad_front + d_pad_tail));
+	std::memset(out, 0x00, sizeof(gr_complex) * (ninput_items[0] + d_pad_front + d_tail));
 
 	std::memcpy(out + d_pad_front, in, sizeof(gr_complex) * ninput_items[0]);
 
 
-	int produced = ninput_items[0] + d_pad_front + d_pad_tail;
+	int produced = ninput_items[0] + d_pad_front + d_tail;
 	const pmt::pmt_t src = pmt::string_to_symbol(alias());
 
 	#ifdef BAR_UHD
@@ -95,6 +109,7 @@ private:
 	double d_delay_sec;
 	unsigned int d_pad_front;
 	unsigned int d_pad_tail;
+	unsigned int d_tail;
 };
 
 packet_pad2::sptr
