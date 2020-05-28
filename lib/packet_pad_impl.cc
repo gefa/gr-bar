@@ -54,8 +54,8 @@ void packet_pad_impl::set_offset(pmt::pmt_t msg){
 	std::cout << "PAD length" << psdu_length2 << std::endl;
 	const char *offset = static_cast<const char*>(pmt::blob_data(pmt::cdr(msg)));
 	if (psdu_length2 == 1) {
-		d_pad_front = (offset[0])*1000;
-		d_tail = d_pad_tail - (offset[0])*1000;
+		d_pad_front = (offset[0]-48)*((unsigned int)d_delay_sec);
+		d_tail = d_pad_tail - (offset[0]-48)*((unsigned int)d_delay_sec);
 	}
 	std::cout << "PAD offset" << d_pad_front << std::endl;
 }
